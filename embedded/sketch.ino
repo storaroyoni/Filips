@@ -1,55 +1,67 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include <WiFi.h>
+#include <PubSubClient.h>
 
-#define ONE_WIRE_BUS 4      
-#define MP503_PIN 34       
-#define MQ9_PIN 35         
+#define ONE_WIRE_BUS 4
+#define MP503_PIN 34
+#define MQ9_PIN 35
 
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 
-float R0 = 10000.0;    
-float RL = 10000.0;  
+const char* ssid = "wifiq na moni";
+const char* password = "parolata na moni";
+const char* mqtt_server = "broker.hivemq.com"; 
+const int mqtt_port = 1883;                   
+const char* mqtt_user = "";                 
+const char* mqtt_password = "";     
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+float R0 = 10000.0;
+float RL = 10000.0;
 
 void setup() {
   Serial.begin(115200);
-  
   sensors.begin();
+  analogReadResolution(12);
   
-  analogReadResolution(12); 
-  
-  Serial.println("Инициализация на сензорите...");
-  delay(2000); 
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("Connected to WiFi");
+
+  client.setServer(mqtt_server, mqtt_port);
+  while (!client.connected()) {
+    if (client.connect("ESP32Client", mqtt_user, mqtt_password)) {
+      Serial.println("Connected to MQTT Broker");
+    } else {
+      delay(5000);
+    }
+  }
 }
 
 void loop() {
   sensors.requestTemperatures();
   float temperatureC = sensors.getTempCByIndex(0);
-  
   int airQuality = analogRead(MP503_PIN);
-  
   int mq9Value = analogRead(MQ9_PIN);
-  float voltage = mq9Value * (3.3 / 4095.0); 
-  float rs = ((3.3 * RL) / voltage) - RL;    
-  float ratio = rs / R0;                     
-  
-  Serial.println("--------------------");
-  Serial.print("Температура: ");
-  Serial.print(temperatureC);
-  Serial.println(" °C");
-  
-  Serial.print("Качество на въздуха (MP503): ");
-  Serial.println(airQuality);
-  
-  Serial.print("MQ-9 сурова стойност: ");
-  Serial.println(mq9Value);
-  Serial.print("MQ-9 съотношение: ");
-  Serial.println(ratio);
-  
+  float voltage = mq9Value * (3.3 / 4095.0);
+  float rs = ((3.3 * RL) / voltage) - RL;
+  float ratio = rs / R0;
+
+  client.publish("home/temperature", String(temperatureC).c_str());
+  client.publish("home/air_quality", String(airQuality).c_str());
+  client.publish("home/gas_ratio", String(ratio).c_str());
+
   interpretAirQuality(airQuality);
   interpretMQ9(ratio);
-  
-  delay(2000); 
+
+  delay(2000);
 }
 
 void interpretAirQuality(int value) {
