@@ -1,27 +1,16 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <WiFi.h>
-#include <PubSubClient.h>
 
 #define ONE_WIRE_BUS 4
 #define MP503_PIN 34
 #define MQ9_PIN 35
 
+const char* ssid = "moni wifi";     
+const char* password = "moni parola"; 
+
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
-
-const char* ssid = "wifiq na moni";
-const char* password = "parolata na moni";
-const char* mqtt_server = "broker.hivemq.com"; 
-const int mqtt_port = 1883;                   
-const char* mqtt_user = "";                 
-const char* mqtt_password = "";     
-
-WiFiClient espClient;
-PubSubClient client(espClient);
-
-float R0 = 10000.0;
-float RL = 10000.0;
 
 void setup() {
   Serial.begin(115200);
@@ -34,15 +23,6 @@ void setup() {
     Serial.print(".");
   }
   Serial.println("Connected to WiFi");
-
-  client.setServer(mqtt_server, mqtt_port);
-  while (!client.connected()) {
-    if (client.connect("ESP32Client", mqtt_user, mqtt_password)) {
-      Serial.println("Connected to MQTT Broker");
-    } else {
-      delay(5000);
-    }
-  }
 }
 
 void loop() {
@@ -54,9 +34,12 @@ void loop() {
   float rs = ((3.3 * RL) / voltage) - RL;
   float ratio = rs / R0;
 
-  client.publish("home/temperature", String(temperatureC).c_str());
-  client.publish("home/air_quality", String(airQuality).c_str());
-  client.publish("home/gas_ratio", String(ratio).c_str());
+  Serial.print("Temperature: ");
+  Serial.println(temperatureC);
+  Serial.print("Air Quality: ");
+  Serial.println(airQuality);
+  Serial.print("Gas Ratio: ");
+  Serial.println(ratio);
 
   interpretAirQuality(airQuality);
   interpretMQ9(ratio);
@@ -65,25 +48,25 @@ void loop() {
 }
 
 void interpretAirQuality(int value) {
-  Serial.print("Качество на въздуха: ");
+  Serial.print("Air Quality: ");
   if (value < 1000) {
-    Serial.println("Отлично");
+    Serial.println("Excellent");
   } else if (value < 2000) {
-    Serial.println("Добро");
+    Serial.println("Good");
   } else if (value < 3000) {
-    Serial.println("Средно");
+    Serial.println("Average");
   } else {
-    Serial.println("Лошо");
+    Serial.println("Poor");
   }
 }
 
 void interpretMQ9(float ratio) {
-  Serial.print("Наличие на газове: ");
+  Serial.print("Gas Level: ");
   if (ratio < 1) {
-    Serial.println("Високо ниво на газове!");
+    Serial.println("High gas level!");
   } else if (ratio < 3) {
-    Serial.println("Средно ниво на газове");
+    Serial.println("Medium gas level");
   } else {
-    Serial.println("Ниско ниво на газове");
+    Serial.println("Low gas level");
   }
 }
