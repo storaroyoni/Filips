@@ -1,0 +1,27 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: "postgres:12.3"
+    container_name: postgres-health-container
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=healthdb
+    ports:
+      - "5431:5432"
+    volumes:
+      - type: bind
+        source: ./docker-setup/init-postgresql-database.sql
+        target: /docker-entrypoint-initdb.d/init-postgresql-databases.sql
+      - type: volume
+        source: postgres-health-data
+        target: /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d healthdb -h localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+volumes:
+  postgres-health-data:
+    name: health-postgres-data
