@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "226987403199",
+    "project_id": "filips-health",
+    "storage_bucket": "filips-health.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:226987403199:android:bc13fc6f656019668d630a",
+        "android_client_info": {
+          "package_name": "com.filips.health"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAG4ld6W1jYl1nAyw3wKNtCvIsV_xPI_Y8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
