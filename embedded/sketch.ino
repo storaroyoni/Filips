@@ -6,36 +6,78 @@
 #define MP503_PIN 34
 #define MQ9_PIN 35
 
-const char* ssid = "moni wifi";     
-const char* password = "moni parola"; 
+float RL = 10000.0;
+float R0 = 10000.0;
+
+const char* ssid = "Moni net";     
+const char* password = "na_M0N1-netA"; 
 
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 
 void setup() {
   Serial.begin(115200);
+
   sensors.begin();
-  analogReadResolution(12);
   
+  sensors.requestTemperatures();
+  delay(750);  
+  
+  int deviceCount = sensors.getDeviceCount();
+  Serial.print("DS18B20 sensors found: ");
+  Serial.println(deviceCount);
+
+  if (deviceCount == 0) {
+    Serial.println("⚠️ No DS18B20 sensors detected! Check wiring.");
+  }
+
+  analogReadResolution(12);
+
   WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
+  int wifiAttempts = 0;
+  
+  while (WiFi.status() != WL_CONNECTED && wifiAttempts < 20) {  
     delay(500);
     Serial.print(".");
+    wifiAttempts++;
   }
-  Serial.println("Connected to WiFi");
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\nConnected to WiFi");
+  } else {
+    Serial.println("\n⚠️ Failed to connect to WiFi.");
+  }
 }
 
 void loop() {
   sensors.requestTemperatures();
   float temperatureC = sensors.getTempCByIndex(0);
+
+  int retryCount = 0;
+  while ((temperatureC == 85 || temperatureC == -127) && retryCount < 5) {
+    Serial.println("⚠️ Invalid temperature, retrying...");
+    delay(750);  
+    sensors.requestTemperatures();
+    temperatureC = sensors.getTempCByIndex(0);
+    retryCount++;
+  }
+
+  if (temperatureC == -127) {
+    Serial.println(" Error: DS18B20 sensor not detected! Check wiring.");
+  } else if (temperatureC == 85) {
+    Serial.println("⚠️ Sensor not initialized properly. Try resetting.");
+  } else {
+    Serial.print("Temperature: ");
+    Serial.print(temperatureC);
+    Serial.println(" °C");
+  }
+
   int airQuality = analogRead(MP503_PIN);
   int mq9Value = analogRead(MQ9_PIN);
   float voltage = mq9Value * (3.3 / 4095.0);
-  float rs = ((3.3 * RL) / voltage) - RL;
+  float rs = (RL * (3.3 - voltage)) / voltage;
   float ratio = rs / R0;
 
-  Serial.print("Temperature: ");
-  Serial.println(temperatureC);
   Serial.print("Air Quality: ");
   Serial.println(airQuality);
   Serial.print("Gas Ratio: ");
@@ -48,7 +90,7 @@ void loop() {
 }
 
 void interpretAirQuality(int value) {
-  Serial.print("Air Quality: ");
+  Serial.print("Air Quality Status: ");
   if (value < 1000) {
     Serial.println("Excellent");
   } else if (value < 2000) {
