@@ -8,6 +8,8 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,7 +33,17 @@ class MainActivity : ComponentActivity() {
         googleFitHelper = GoogleFitHelper(this)
         setContent {
             MaterialTheme {
-                StepDataApp(googleFitHelper)
+                val showRawJson = remember { mutableStateOf(false) }
+                
+                if (showRawJson.value) {
+                    JsonDataApp(googleFitHelper) {
+                        showRawJson.value = false
+                    }
+                } else {
+                    StepDataApp(googleFitHelper) {
+                        showRawJson.value = true
+                    }
+                }
             }
         }
     }
@@ -41,9 +53,9 @@ class MainActivity : ComponentActivity() {
 
         when (requestCode) {
             RC_SIGN_IN -> {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
-            googleFitHelper.handleSignInResult(
-                task,
+                val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+                googleFitHelper.handleSignInResult(
+                    task,
                     onSuccess = {
                         if (!googleFitHelper.hasPermissions()) {
                             GoogleSignIn.requestPermissions(
@@ -60,7 +72,7 @@ class MainActivity : ComponentActivity() {
             GoogleFitHelper.GOOGLE_FIT_PERMISSIONS_REQUEST_CODE -> {
                 if (resultCode == RESULT_OK) {
                     Log.d("GoogleFitApp", "Google Fit permissions granted")
-                    // The UI will update via the LaunchedEffect in StepDataApp
+                    // The UI will update via the LaunchedEffect
                 } else {
                     Log.e("GoogleFitApp", "Google Fit permissions denied")
                 }
@@ -70,7 +82,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun StepDataApp(googleFitHelper: GoogleFitHelper) {
+fun StepDataApp(googleFitHelper: GoogleFitHelper, onShowJsonView: () -> Unit) {
     val context = LocalContext.current
     var stepDataList by remember { mutableStateOf<List<GoogleFitHelper.DailyStepData>>(emptyList()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -197,45 +209,60 @@ fun StepDataApp(googleFitHelper: GoogleFitHelper) {
             )
         }
 
-        Button(
-            onClick = {
-                errorMessage = null
-                coroutineScope.launch {
-                    val activity = context as ComponentActivity
-                    if (!googleFitHelper.isSignedIn()) {
-                        // Sign in with Google
-                        activity.startActivityForResult(googleFitHelper.getSignInIntent(), RC_SIGN_IN)
-                    } else if (!googleFitHelper.hasPermissions()) {
-                        // Show permission dialog
-                        showPermissionDialog = true
-                    } else {
-                        isLoading = true
-                        fetchDetailedStepData(
-                            googleFitHelper,
-                            numberOfDays,
-                            onSuccess = { 
-                                stepDataList = it
-                                isLoading = false
-                            },
-                            onFailure = { 
-                                errorMessage = it
-                                isLoading = false
-                            }
-                        )
-                    }
-                }
-            },
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp)
+                .padding(vertical = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                text = when {
-                    !googleFitHelper.isSignedIn() -> "Sign In with Google"
-                    !googleFitHelper.hasPermissions() -> "Request Fitness Permissions"
-                    else -> "Refresh Step Data"
-                }
-            )
+            Button(
+                onClick = {
+                    errorMessage = null
+                    coroutineScope.launch {
+                        val activity = context as ComponentActivity
+                        if (!googleFitHelper.isSignedIn()) {
+                            // Sign in with Google
+                            activity.startActivityForResult(googleFitHelper.getSignInIntent(), RC_SIGN_IN)
+                        } else if (!googleFitHelper.hasPermissions()) {
+                            // Show permission dialog
+                            showPermissionDialog = true
+                        } else {
+                            isLoading = true
+                            fetchDetailedStepData(
+                                googleFitHelper,
+                                numberOfDays,
+                                onSuccess = { 
+                                    stepDataList = it
+                                    isLoading = false
+                                },
+                                onFailure = { 
+                                    errorMessage = it
+                                    isLoading = false
+                                }
+                            )
+                        }
+                    }
+                },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = when {
+                        !googleFitHelper.isSignedIn() -> "Sign In with Google"
+                        !googleFitHelper.hasPermissions() -> "Request Permissions"
+                        else -> "Refresh Data"
+                    }
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(8.dp))
+            
+            OutlinedButton(
+                onClick = onShowJsonView,
+                enabled = googleFitHelper.isSignedIn() && googleFitHelper.hasPermissions(),
+                modifier = Modifier.width(120.dp)
+            ) {
+                Text("Show JSON")
+            }
         }
     }
     
@@ -256,6 +283,220 @@ fun StepDataApp(googleFitHelper: GoogleFitHelper) {
             onDeny = {
                 showPermissionDialog = false
                 errorMessage = "Google Fit permissions are required to access your step data"
+            }
+        )
+    }
+}
+
+@Composable
+fun JsonDataApp(googleFitHelper: GoogleFitHelper, onBackToStepView: () -> Unit) {
+    val context = LocalContext.current
+    var jsonData by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    var showPermissionDialog by remember { mutableStateOf(false) }
+    var numberOfDays by remember { mutableStateOf(7) }
+    val coroutineScope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
+
+    // Check if already signed in and has permissions
+    LaunchedEffect(googleFitHelper.isSignedIn(), googleFitHelper.hasPermissions()) {
+        if (googleFitHelper.isSignedIn() && googleFitHelper.hasPermissions()) {
+            isLoading = true
+            fetchSleepAndTodayStepsAsJson(
+                googleFitHelper,
+                numberOfDays,
+                onSuccess = { 
+                    jsonData = it
+                    isLoading = false
+                },
+                onFailure = { 
+                    errorMessage = it
+                    isLoading = false
+                }
+            )
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Sleep Data and Today's Steps (JSON)",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        
+        // Number of days selector for sleep data
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Sleep data for last",
+                fontSize = 14.sp,
+                modifier = Modifier.padding(end = 8.dp)
+            )
+            
+            listOf(3, 7, 14, 30).forEach { days ->
+                OutlinedButton(
+                    onClick = {
+                        numberOfDays = days
+                        if (googleFitHelper.isSignedIn() && googleFitHelper.hasPermissions()) {
+                            isLoading = true
+                            fetchSleepAndTodayStepsAsJson(
+                                googleFitHelper,
+                                numberOfDays,
+                                onSuccess = { 
+                                    jsonData = it
+                                    isLoading = false
+                                },
+                                onFailure = { 
+                                    errorMessage = it
+                                    isLoading = false
+                                }
+                            )
+                        }
+                    },
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = if (numberOfDays == days) MaterialTheme.colorScheme.primary else Color.Gray
+                    ),
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                ) {
+                    Text(text = "$days days")
+                }
+            }
+        }
+
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .size(50.dp)
+            )
+            Text(text = "Loading data...")
+        } else if (jsonData.isNotEmpty()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(vertical = 8.dp)
+            ) {
+                Text(
+                    text = jsonData,
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxSize()
+                        .verticalScroll(scrollState),
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                    fontSize = 12.sp
+                )
+            }
+        } else if (!googleFitHelper.isSignedIn() || !googleFitHelper.hasPermissions()) {
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = "Please sign in with Google and grant access to your fitness data to view your sleep and step data.",
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(16.dp)
+            )
+        } else {
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = "No data found.",
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+
+        if (errorMessage != null) {
+            Text(
+                text = errorMessage!!,
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Button(
+                onClick = {
+                    errorMessage = null
+                    coroutineScope.launch {
+                        val activity = context as ComponentActivity
+                        if (!googleFitHelper.isSignedIn()) {
+                            // Sign in with Google
+                            activity.startActivityForResult(googleFitHelper.getSignInIntent(), RC_SIGN_IN)
+                        } else if (!googleFitHelper.hasPermissions()) {
+                            // Show permission dialog
+                            showPermissionDialog = true
+                        } else {
+                            isLoading = true
+                            fetchSleepAndTodayStepsAsJson(
+                                googleFitHelper,
+                                numberOfDays,
+                                onSuccess = { 
+                                    jsonData = it
+                                    isLoading = false
+                                },
+                                onFailure = { 
+                                    errorMessage = it
+                                    isLoading = false
+                                }
+                            )
+                        }
+                    }
+                },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = when {
+                        !googleFitHelper.isSignedIn() -> "Sign In with Google"
+                        !googleFitHelper.hasPermissions() -> "Request Permissions"
+                        else -> "Refresh JSON"
+                    }
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(8.dp))
+            
+            OutlinedButton(
+                onClick = onBackToStepView,
+                modifier = Modifier.width(120.dp)
+            ) {
+                Text("Back to Steps")
+            }
+        }
+    }
+    
+    // Permission Dialog
+    if (showPermissionDialog) {
+        PermissionDialog(
+            onDismiss = { showPermissionDialog = false },
+            onAllow = {
+                showPermissionDialog = false
+                val activity = context as ComponentActivity
+                GoogleSignIn.requestPermissions(
+                    activity,
+                    GoogleFitHelper.GOOGLE_FIT_PERMISSIONS_REQUEST_CODE,
+                    GoogleSignIn.getLastSignedInAccount(activity),
+                    googleFitHelper.fitnessOptions
+                )
+            },
+            onDeny = {
+                showPermissionDialog = false
+                errorMessage = "Google Fit permissions are required to access your fitness data"
             }
         )
     }
@@ -354,7 +595,7 @@ fun PermissionDialog(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "This app requires access to your Google Fit data to display your step count information by date and hour.",
+                    text = "This app requires access to your Google Fit data to display your step count and sleep information.",
                     fontSize = 16.sp
                 )
                 Spacer(modifier = Modifier.height(24.dp))
@@ -397,6 +638,26 @@ private fun fetchDetailedStepData(
         onFailure = { e ->
             Log.e("GoogleFitApp", "Failed to fetch step data", e)
             onFailure("Failed to fetch step data: ${e.message}")
+        }
+    )
+}
+
+private fun fetchSleepAndTodayStepsAsJson(
+    googleFitHelper: GoogleFitHelper,
+    numberOfDays: Int,
+    onSuccess: (String) -> Unit,
+    onFailure: (String) -> Unit
+) {
+    Log.d("GoogleFitApp", "Fetching sleep and today's steps as JSON for last $numberOfDays days")
+    googleFitHelper.fetchSleepAndTodayStepsAsJson(
+        numberOfDays = numberOfDays,
+        onSuccess = { jsonData ->
+            Log.d("GoogleFitApp", "Received JSON data")
+            onSuccess(jsonData)
+        },
+        onFailure = { e ->
+            Log.e("GoogleFitApp", "Failed to fetch JSON data", e)
+            onFailure("Failed to fetch data: ${e.message}")
         }
     )
 }
