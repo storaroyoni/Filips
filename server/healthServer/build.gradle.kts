@@ -26,10 +26,14 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	runtimeOnly("org.postgresql:postgresql")
 	compileOnly("org.projectlombok:lombok")
+	
+	implementation("jakarta.persistence:jakarta.persistence-api:3.1.0")
+    implementation("org.hibernate:hibernate-core:6.4.0.Final")
 	annotationProcessor("org.projectlombok:lombok")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.springframework.security:spring-security-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+	
 }
 
 tasks.withType<Test> {
