@@ -1,13 +1,18 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <WiFi.h>
+#include <HTTPClient.h>
+
 
 #define ONE_WIRE_BUS 4
 #define MP503_PIN 34
 #define MQ9_PIN 35
 
-const char* ssid = "moni wifi";     
-const char* password = "moni parola"; 
+float R0 = 1000.0;
+float RL = 1000.0;
+
+const char* ssid = "";     
+const char* password = ""; 
 
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
@@ -23,6 +28,8 @@ void setup() {
     Serial.print(".");
   }
   Serial.println("Connected to WiFi");
+
+  sendPostRequest();
 }
 
 void loop() {
@@ -70,3 +77,31 @@ void interpretMQ9(float ratio) {
     Serial.println("Low gas level");
   }
 }
+
+void sendPostRequest() {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+
+    String serverUrl = "http://192.168.95.90:8082/device/hello";
+
+    http.begin(serverUrl);
+    int httpResponseCode = http.POST("");
+
+    Serial.print("HTTP Response code: ");
+    Serial.println(httpResponseCode);
+
+    if (httpResponseCode > 0) {
+      String response = http.getString();
+      Serial.println("Response:");
+      Serial.println(response);
+    } else {
+      Serial.print("Error code: ");
+      Serial.println(httpResponseCode);
+    }
+
+    http.end();
+  } else {
+    Serial.println("WiFi Disconnected");
+  }
+}
+
