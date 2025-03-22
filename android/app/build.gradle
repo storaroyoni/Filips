@@ -58,10 +58,11 @@ dependencies {
     
     // Google Play Services
     implementation 'com.google.android.gms:play-services-base:18.3.0'
-    implementation 'com.google.android.gms:play-services-auth:21.0.0'
-    implementation 'com.google.android.gms:play-services-fitness:21.1.0'
+    implementation 'com.google.android.gms:play-services-auth:20.2.0'
+    implementation 'com.google.android.gms:play-services-fitness:21.0.0'
     
     // Dagger Hilt
     implementation 'com.google.dagger:hilt-android:2.50'
+    implementation libs.androidx.runtime.android
     kapt 'com.google.dagger:hilt-compiler:2.50'
 } 

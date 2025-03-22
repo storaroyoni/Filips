@@ -53,6 +53,7 @@ dependencies {
     // Add Google Fit and Google Sign-In dependencies
     implementation("com.google.android.gms:play-services-fitness:21.0.0")
     implementation("com.google.android.gms:play-services-auth:20.2.0")
+    implementation(libs.androidx.contentpager)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

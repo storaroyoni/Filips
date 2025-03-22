@@ -96,6 +96,23 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/profileCard" />
 
+        <!-- No Data Message -->
+        <TextView
+            android:id="@+id/noDataMessage"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Please connect to Google Fit to see your health data"
+            android:textSize="16sp"
+            android:textAlignment="center"
+            android:textColor="@color/text_secondary"
+            android:fontFamily="@font/poppins_regular"
+            android:layout_marginTop="16dp"
+            android:padding="16dp"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/welcomeText" />
+
         <!-- Summary Card -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/summaryCard"
@@ -401,30 +418,58 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Sync Section -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/syncButton"
-            android:layout_width="wrap_content"
+        <!-- Sync buttons should be near the bottom -->
+        <LinearLayout
+            android:id="@+id/syncButtonsLayout"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:text="Sync Health Data"
-            android:textSize="14sp"
-            android:fontFamily="@font/poppins_medium"
-            android:backgroundTint="@color/primary"
-            app:cornerRadius="12dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/sleepChartCard" />
+            android:orientation="horizontal"
+            app:layout_constraintTop_toBottomOf="@id/sleepChartCard">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/syncButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Sync with Google Fit"
+                android:textAllCaps="false"
+                app:cornerRadius="12dp" />
+
+            <Space
+                android:layout_width="8dp"
+                android:layout_height="wrap_content" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/signOutButton"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sign Out"
+                android:textAllCaps="false"
+                app:cornerRadius="12dp" />
+        </LinearLayout>
+
+        <ProgressBar
+            android:id="@+id/syncProgress"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="8dp"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@+id/syncButtonsLayout"
+            app:layout_constraintStart_toEndOf="@+id/syncButtonsLayout"
+            app:layout_constraintTop_toTopOf="@+id/syncButtonsLayout" />
 
         <TextView
             android:id="@+id/lastSyncText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
+            android:layout_marginTop="8dp"
             android:textColor="@color/text_secondary"
             android:fontFamily="@font/poppins_regular"
-            app:layout_constraintBottom_toBottomOf="@+id/syncButton"
-            app:layout_constraintStart_toEndOf="@+id/syncButton"
-            app:layout_constraintTop_toTopOf="@+id/syncButton"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/syncButtonsLayout"
             tools:text="Last sync: Mar 22, 2025 00:00" />
 
         <!-- Forum Button -->
@@ -432,14 +477,14 @@
             android:id="@+id/viewForumButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="16dp"
             android:text="View Health Forum"
             android:textSize="16sp"
             android:padding="12dp"
             android:fontFamily="@font/poppins_medium"
             android:backgroundTint="@color/primary"
             app:cornerRadius="12dp"
-            app:layout_constraintTop_toBottomOf="@+id/syncButton" />
+            app:layout_constraintTop_toBottomOf="@+id/lastSyncText" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.core.widget.NestedScrollView>

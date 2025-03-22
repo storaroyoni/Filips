@@ -33,7 +33,7 @@ class GoogleFitHelper(private val context: Context) {
     companion object {
         const val GOOGLE_FIT_PERMISSIONS_REQUEST_CODE = 1001
         private const val TAG = "GoogleFitHelper"
-        
+
         // Sleep segment type constants
         // These constants should match the values from Field.java in Google Fit API
         private const val SLEEP_SEGMENT_TYPE_AWAKE = 1
@@ -177,7 +177,7 @@ class GoogleFitHelper(private val context: Context) {
                 .readData(todayStepsRequest)
                 .addOnSuccessListener { todayStepsResponse ->
                     var todaySteps = 0
-                    
+
                     if (todayStepsResponse.buckets.isNotEmpty() && todayStepsResponse.buckets[0].dataSets.isNotEmpty()) {
                         todayStepsResponse.buckets[0].dataSets[0].dataPoints.forEach { dataPoint ->
                             todaySteps += dataPoint.getValue(Field.FIELD_STEPS).asInt()
@@ -201,7 +201,7 @@ class GoogleFitHelper(private val context: Context) {
                         .readData(sleepDataRequest)
                         .addOnSuccessListener { sleepResponse ->
                             val sleepArray = JSONArray()
-                            
+
                             // Group sleep segments by night (date of sleep start)
                             val sleepSegmentsByDate = mutableMapOf<String, MutableList<JSONObject>>()
 
@@ -213,20 +213,20 @@ class GoogleFitHelper(private val context: Context) {
                                             val startTime = dataPoint.getStartTime(TimeUnit.MILLISECONDS)
                                             val endTime = dataPoint.getEndTime(TimeUnit.MILLISECONDS)
                                             val sleepStage = dataPoint.getValue(Field.FIELD_SLEEP_SEGMENT_TYPE).asInt()
-                                            
+
                                             // Get date of sleep start for grouping
                                             val sleepDate = dateFormat.format(Date(startTime))
-                                            
+
                                             // Create JSON for this sleep segment
                                             sleepSegment.put("startTime", timeFormat.format(Date(startTime)))
                                             sleepSegment.put("endTime", timeFormat.format(Date(endTime)))
                                             sleepSegment.put("startTimestamp", startTime)
                                             sleepSegment.put("endTimestamp", endTime)
-                                            
+
                                             // Duration in minutes
                                             val durationMinutes = (endTime - startTime) / (1000 * 60)
                                             sleepSegment.put("durationMinutes", durationMinutes)
-                                            
+
                                             // Sleep stage
                                             val stageName = when (sleepStage) {
                                                 SLEEP_SEGMENT_TYPE_AWAKE -> "AWAKE"
@@ -238,24 +238,24 @@ class GoogleFitHelper(private val context: Context) {
                                                 else -> "UNKNOWN"
                                             }
                                             sleepSegment.put("sleepStage", stageName)
-                                            
+
                                             // Add to map grouped by date
                                             if (!sleepSegmentsByDate.containsKey(sleepDate)) {
                                                 sleepSegmentsByDate[sleepDate] = mutableListOf()
                                             }
                                             sleepSegmentsByDate[sleepDate]?.add(sleepSegment)
-                                            
+
                                         } catch (e: Exception) {
                                             Log.e(TAG, "Error processing sleep data point", e)
                                         }
                                     }
                                 }
-                                
+
                                 // For each date, create a summary entry with all segments
                                 sleepSegmentsByDate.forEach { (date, segments) ->
                                     // Sort segments by start time
                                     segments.sortBy { it.getLong("startTimestamp") }
-                                    
+
                                     // Calculate total sleep time (excluding AWAKE and OUT_OF_BED)
                                     var totalSleepMinutes = 0L
                                     segments.forEach { segment ->
@@ -264,12 +264,12 @@ class GoogleFitHelper(private val context: Context) {
                                             totalSleepMinutes += segment.getLong("durationMinutes")
                                         }
                                     }
-                                    
+
                                     // Calculate light, deep, and REM sleep
                                     var lightSleepMinutes = 0L
                                     var deepSleepMinutes = 0L
                                     var remSleepMinutes = 0L
-                                    
+
                                     segments.forEach { segment ->
                                         when (segment.getString("sleepStage")) {
                                             "LIGHT" -> lightSleepMinutes += segment.getLong("durationMinutes")
@@ -278,11 +278,11 @@ class GoogleFitHelper(private val context: Context) {
                                             "SLEEP" -> lightSleepMinutes += segment.getLong("durationMinutes") // Count generic SLEEP as LIGHT
                                         }
                                     }
-                                    
+
                                     // Get earliest start time and latest end time for the night
                                     val earliestStart = segments.minByOrNull { it.getLong("startTimestamp") }?.getLong("startTimestamp") ?: 0
                                     val latestEnd = segments.maxByOrNull { it.getLong("endTimestamp") }?.getLong("endTimestamp") ?: 0
-                                    
+
                                     // Create the sleep entry for this date
                                     val sleepEntry = JSONObject().apply {
                                         put("date", date)
@@ -293,37 +293,37 @@ class GoogleFitHelper(private val context: Context) {
                                         put("lightSleepMinutes", lightSleepMinutes)
                                         put("deepSleepMinutes", deepSleepMinutes)
                                         put("remSleepMinutes", remSleepMinutes)
-                                        
+
                                         // Add all segments
                                         val segmentsArray = JSONArray()
                                         segments.forEach { segmentsArray.put(it) }
                                         put("segments", segmentsArray)
                                     }
-                                    
+
                                     sleepArray.put(sleepEntry)
                                 }
                             }
-                            
+
                             // Sort sleep data by date (most recent first)
                             val sortedSleepArray = JSONArray()
                             val sleepEntries = mutableListOf<JSONObject>()
-                            
+
                             for (i in 0 until sleepArray.length()) {
                                 sleepEntries.add(sleepArray.getJSONObject(i))
                             }
-                            
+
                             sleepEntries.sortByDescending { it.getString("date") }
                             sleepEntries.forEach { sortedSleepArray.put(it) }
-                            
+
                             // Add to root object
                             jsonRoot.put("sleepData", sortedSleepArray)
-                            
+
                             // Return the complete JSON
                             onSuccess(jsonRoot.toString(2)) // Pretty print with indent of 2
                         }
                         .addOnFailureListener { e ->
                             Log.e(TAG, "Failed to read sleep data", e)
-                            
+
                             // Even if sleep data fails, return today's steps
                             jsonRoot.put("sleepData", JSONArray())
                             onSuccess(jsonRoot.toString(2))
@@ -357,18 +357,18 @@ class GoogleFitHelper(private val context: Context) {
         }
 
         try {
-        val fitnessClient = Fitness.getHistoryClient(context, account)
+            val fitnessClient = Fitness.getHistoryClient(context, account)
 
             val calendar = Calendar.getInstance()
             val endTime = calendar.timeInMillis
-            
+
             // Set time to end of day
             calendar.set(Calendar.HOUR_OF_DAY, 23)
             calendar.set(Calendar.MINUTE, 59)
             calendar.set(Calendar.SECOND, 59)
             calendar.set(Calendar.MILLISECOND, 999)
             val endTimeAdjusted = calendar.timeInMillis
-            
+
             // Go back to the start date
             calendar.add(Calendar.DAY_OF_YEAR, -(numberOfDays - 1))
             // Set time to start of day
@@ -380,7 +380,7 @@ class GoogleFitHelper(private val context: Context) {
 
             val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
             val timeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-            
+
             Log.d(TAG, "Range Start: ${dateFormat.format(Date(startTime))}")
             Log.d(TAG, "Range End: ${dateFormat.format(Date(endTimeAdjusted))}")
 
@@ -403,19 +403,19 @@ class GoogleFitHelper(private val context: Context) {
                 .addOnSuccessListener { dailyResponse ->
                     // Create map to store daily data by date string
                     val dailyDataMap = mutableMapOf<String, DailyStepData>()
-                    
+
                     // Process daily buckets
                     for (bucket in dailyResponse.buckets) {
                         val bucketDate = Date(bucket.getStartTime(TimeUnit.MILLISECONDS))
                         val dateString = dateFormat.format(bucketDate)
                         var dailySteps = 0
-                        
+
                         for (dataSet in bucket.dataSets) {
                             for (dataPoint in dataSet.dataPoints) {
                                 dailySteps += dataPoint.getValue(Field.FIELD_STEPS).asInt()
                             }
                         }
-                        
+
                         // Initialize DailyStepData with empty hourly data
                         dailyDataMap[dateString] = DailyStepData(
                             date = dateString,
@@ -423,7 +423,7 @@ class GoogleFitHelper(private val context: Context) {
                             hourlySteps = emptyList()
                         )
                     }
-                    
+
                     // Now get hourly data
                     fitnessClient.readData(hourlyRequest)
                         .addOnSuccessListener { hourlyResponse ->
@@ -435,15 +435,15 @@ class GoogleFitHelper(private val context: Context) {
                                 }
                                 val hour = calendar.get(Calendar.HOUR_OF_DAY)
                                 val dateString = dateFormat.format(bucketDate)
-                                
+
                                 var hourlySteps = 0
-                                
+
                                 for (dataSet in bucket.dataSets) {
                                     for (dataPoint in dataSet.dataPoints) {
                                         hourlySteps += dataPoint.getValue(Field.FIELD_STEPS).asInt()
                                     }
                                 }
-                                
+
                                 // Skip hours with zero steps to keep data concise
                                 if (hourlySteps > 0) {
                                     // Get existing daily data or create new
@@ -452,24 +452,24 @@ class GoogleFitHelper(private val context: Context) {
                                         totalSteps = 0,
                                         hourlySteps = emptyList()
                                     )
-                                    
+
                                     // Add hourly data
                                     val updatedHourlySteps = dailyData.hourlySteps.toMutableList()
                                     updatedHourlySteps.add(HourlyStepData(hour, hourlySteps))
-                                    
+
                                     // Sort by hour
                                     val sortedHourlySteps = updatedHourlySteps.sortedBy { it.hour }
-                                    
+
                                     // Update the map
                                     dailyDataMap[dateString] = dailyData.copy(
                                         hourlySteps = sortedHourlySteps
                                     )
                                 }
                             }
-                            
+
                             // Convert map to list sorted by date (most recent first)
                             val dailyStepDataList = dailyDataMap.values.sortedByDescending { it.date }
-                            
+
                             Log.d(TAG, "Daily step data: $dailyStepDataList")
                             onSuccess(dailyStepDataList)
                         }
@@ -482,7 +482,7 @@ class GoogleFitHelper(private val context: Context) {
                     Log.e(TAG, "Failed to read daily step data", e)
                     onFailure(e)
                 }
-            
+
         } catch (e: Exception) {
             Log.e(TAG, "Exception while reading step data", e)
             onFailure(e)
@@ -513,7 +513,7 @@ class GoogleFitHelper(private val context: Context) {
             Log.d(TAG, "Range Start: ${dateFormat.format(Date(startTime))}")
             Log.d(TAG, "Range End: ${dateFormat.format(Date(endTime))}")
 
-        val request = DataReadRequest.Builder()
+            val request = DataReadRequest.Builder()
                 .aggregate(DataType.TYPE_STEP_COUNT_DELTA)
                 .aggregate(DataType.TYPE_DISTANCE_DELTA)
                 .aggregate(DataType.TYPE_CALORIES_EXPENDED)
@@ -521,15 +521,15 @@ class GoogleFitHelper(private val context: Context) {
                 .read(DataType.TYPE_WEIGHT)
                 .read(DataType.TYPE_HEIGHT)
                 .read(DataType.TYPE_SLEEP_SEGMENT)
-            .bucketByTime(1, TimeUnit.DAYS)
-            .setTimeRange(startTime, endTime, TimeUnit.MILLISECONDS)
-            .build()
+                .bucketByTime(1, TimeUnit.DAYS)
+                .setTimeRange(startTime, endTime, TimeUnit.MILLISECONDS)
+                .build()
 
             Log.d(TAG, "Reading fitness data from $startTime to $endTime")
 
-        fitnessClient.readData(request)
-            .addOnSuccessListener { response ->
-                var totalSteps = 0
+            fitnessClient.readData(request)
+                .addOnSuccessListener { response ->
+                    var totalSteps = 0
                     var totalDistance = 0f
                     var totalCalories = 0f
                     var avgHeartRate = 0f
@@ -538,10 +538,10 @@ class GoogleFitHelper(private val context: Context) {
                     var sleepDuration = 0L
                     var heartRateCount = 0
 
-                for (bucket in response.buckets) {
+                    for (bucket in response.buckets) {
                         Log.d(TAG, "Bucket: ${bucket.activity} from ${dateFormat.format(bucket.getStartTime(TimeUnit.MILLISECONDS))} to ${dateFormat.format(bucket.getEndTime(TimeUnit.MILLISECONDS))}")
 
-                    for (dataSet in bucket.dataSets) {
+                        for (dataSet in bucket.dataSets) {
                             processDataSet(
                                 dataSet,
                                 onStepCount = { totalSteps += it },
@@ -574,7 +574,7 @@ class GoogleFitHelper(private val context: Context) {
                                 }
                             }
                             DataType.TYPE_SLEEP_SEGMENT -> {
-                        for (dataPoint in dataSet.dataPoints) {
+                                for (dataPoint in dataSet.dataPoints) {
                                     val start = dataPoint.getStartTime(TimeUnit.MILLISECONDS)
                                     val end = dataPoint.getEndTime(TimeUnit.MILLISECONDS)
                                     sleepDuration += (end - start)
@@ -606,10 +606,10 @@ class GoogleFitHelper(private val context: Context) {
                 }
         } catch (e: Exception) {
             Log.e(TAG, "Exception while reading fitness data", e)
-                onFailure(e)
-            }
+            onFailure(e)
+        }
     }
-    
+
     private fun processDataSet(
         dataSet: DataSet,
         onStepCount: (Int) -> Unit = {},
@@ -618,7 +618,7 @@ class GoogleFitHelper(private val context: Context) {
         onHeartRate: (Float) -> Unit = {}
     ) {
         Log.d(TAG, "Data set: ${dataSet.dataType.name}")
-        
+
         for (dataPoint in dataSet.dataPoints) {
             when (dataSet.dataType) {
                 DataType.TYPE_STEP_COUNT_DELTA, DataType.AGGREGATE_STEP_COUNT_DELTA -> {
