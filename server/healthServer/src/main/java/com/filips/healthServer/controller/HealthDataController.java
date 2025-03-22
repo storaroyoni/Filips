@@ -37,4 +37,9 @@ public class HealthDataController {
     public ResponseEntity<List<HealthData>> fetchPublicData(){
         return new ResponseEntity<>(healthDataService.fetchPublicData(), HttpStatus.FOUND);
     }
+
+    @GetMapping("/analyzed")
+    public ResponseEntity<String> fetchAnalyzedData(){
+        return new ResponseEntity<>(healthDataService.analyzeData(), HttpStatus.OK);
+    }
 }
