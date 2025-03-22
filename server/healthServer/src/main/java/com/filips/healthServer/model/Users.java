@@ -15,8 +15,10 @@ public class Users {
     @Column(name = "user_id")
     private int id;
 
-    @Column(unique = true)
+    @Column(unique = true, nullable = false)
     private String username;
+
+    @Column(nullable = false)
     private String password;
 
     @Column(name = "first_name")
@@ -33,7 +35,4 @@ public class Users {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    @OneToMany
-    private List<Device> devices;
 }

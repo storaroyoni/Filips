@@ -1,31 +1,20 @@
 package com.filips.healthServer.service;
 
+import com.filips.healthServer.dto.UserDTO;
+import com.filips.healthServer.mapper.UserMapper;
 import com.filips.healthServer.model.Users;
 import com.filips.healthServer.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 
+@AllArgsConstructor
 @Service
 public class UserService {
+    private final UserRepository userRepository;
 
-    @Autowired
-    private UserRepository userRepository;
-
-    public Users saveUser(Users user) {
+    public Users saveUser(UserDTO dto) {
+        Users user = UserMapper.INSTANCE.toEntity(dto);
         return userRepository.save(user);
-    }
-
-    public Users getUserById(int id) {
-        return userRepository.findById(id).orElse(null);
-    }
-
-    public List<Users> getAllUsers() {
-        return userRepository.findAll();
-    }
-
-    public void deleteUser(int id) {
-        userRepository.deleteById(id);
     }
 }
