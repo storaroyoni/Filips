@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/loginFragment">
+    app:startDestination="@id/forumFragment">
 
     <fragment
         android:id="@+id/loginFragment"
@@ -39,7 +39,15 @@
         android:id="@+id/forumFragment"
         android:name="com.filips.health.ui.ForumFragment"
         android:label="Forum"
-        tools:layout="@layout/fragment_forum" />
+        tools:layout="@layout/fragment_forum">
+        <action
+            android:id="@+id/action_forum_to_create_post"
+            app:destination="@id/createPostFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
 
     <fragment
         android:id="@+id/profileFragment"
@@ -47,4 +55,10 @@
         android:label="Profile"
         tools:layout="@layout/fragment_profile" />
 
-</navigation> 
+    <fragment
+        android:id="@+id/createPostFragment"
+        android:name="com.filips.health.ui.CreatePostFragment"
+        android:label="Create Post"
+        tools:layout="@layout/fragment_create_post" />
+
+</navigation>

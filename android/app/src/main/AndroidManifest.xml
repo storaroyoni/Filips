@@ -9,6 +9,7 @@
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
     <!-- Optional: Add this if you want to make location optional -->
     <uses-feature
@@ -16,7 +17,7 @@
         android:required="false" />
 
     <application
-        android:name=".HealthApplication"
+        android:name=".FilipsHealthApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -42,6 +43,11 @@
         <meta-data
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
+
+        <activity
+            android:name=".ui.PostDetailsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.FilipsHealth.NoActionBar" />
 
     </application>
 

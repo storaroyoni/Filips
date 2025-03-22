@@ -1,7 +1,6 @@
 package com.filips.health
 
 import org.junit.Test
-
 import org.junit.Assert.*
 
 /**
