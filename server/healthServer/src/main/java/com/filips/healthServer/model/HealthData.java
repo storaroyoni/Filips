@@ -1,22 +1,21 @@
 package com.filips.healthServer.model;
 
 import jakarta.persistence.*;
-import lombok.CustomLog;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 
 @Data
 @Entity
+@Table(name = "health_data")
 public class HealthData {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "health_data_id")
     private int id;
 
-    @ManyToOne
-    @JoinColumn(name = "device_id", nullable = false)
-    private Device device;
+    @Enumerated(value = EnumType.STRING)
+    private DeviceType device;
 
     @Column(name = "measured_at", nullable = false)
     private LocalDateTime measuredAt;
@@ -28,8 +27,6 @@ public class HealthData {
     @Column(name = "value_numeric", nullable = false)
     private int valueNumeric;
 
-    @Column(name = "value_text")
-    private String valueText;
-
-    private String unit;
+    @Column(name = "is_public")
+    private boolean isPublic;
 }
