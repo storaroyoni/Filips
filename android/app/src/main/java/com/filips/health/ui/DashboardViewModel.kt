@@ -11,6 +11,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import java.util.Date
+import kotlin.random.Random
 
 class DashboardViewModel : ViewModel() {
 
@@ -27,58 +28,43 @@ class DashboardViewModel : ViewModel() {
     val lastSync: LiveData<Date> = _lastSync
 
     init {
-        loadCurrentUser()
-        loadHealthData()
+        loadDummyData()
     }
 
-    private fun loadCurrentUser() {
-        val firebaseUser = auth.currentUser
-        if (firebaseUser != null) {
-            firestore.collection("users")
-                .document(firebaseUser.uid)
-                .get()
-                .addOnSuccessListener { document ->
-                    if (document != null) {
-                        val user = User(
-                            id = firebaseUser.uid,
-                            email = firebaseUser.email ?: "",
-                            username = document.getString("username") ?: ""
-                        )
-                        _currentUser.value = user
-                    }
-                }
-        }
-    }
+    private fun loadDummyData() {
+        // Dummy user data
+        _currentUser.value = User(
+            id = "dummy_id",
+            email = "john.doe@example.com",
+            username = "John Doe"
+        )
 
-    private fun loadHealthData() {
-        val userId = auth.currentUser?.uid ?: return
-        firestore.collection("health_data")
-            .document(userId)
-            .get()
-            .addOnSuccessListener { document ->
-                if (document != null && document.exists()) {
-                    val healthData = HealthData(
-                        steps = document.getLong("steps")?.toInt() ?: 0,
-                        distance = document.getDouble("distance") ?: 0.0,
-                        calories = document.getDouble("calories") ?: 0.0,
-                        heartRate = document.getLong("heartRate")?.toInt() ?: 0
-                    )
-                    _healthData.value = healthData
-                    _lastSync.value = document.getDate("lastSync") ?: Date()
-                }
-            }
+        _healthData.value = HealthData(
+            steps = 8743,
+            distance = 6.2 * 1000, // 6.2 km in meters
+            calories = 420.0,
+            heartRate = 72
+        )
+
+        _lastSync.value = Date()
     }
 
     fun syncHealthData() {
         viewModelScope.launch {
-            // TODO: Implement Google Fit sync
-            // For now, just update last sync time
+            // Generate new random but realistic data when syncing
+            _healthData.value = HealthData(
+                steps = Random.nextInt(6000, 12000),
+                distance = Random.nextDouble(4.0, 8.0) * 1000, // 4-8 km in meters
+                calories = Random.nextDouble(300.0, 600.0),
+                heartRate = Random.nextInt(65, 85)
+            )
             _lastSync.value = Date()
         }
     }
 
     fun logout() {
-        auth.signOut()
+        _currentUser.value = null
+        _healthData.value = null
     }
 
     companion object {
